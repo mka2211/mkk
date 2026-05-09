@@ -1,11 +1,301 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>For My Universe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@300;500;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #ff2d55; --secondary: #6366f1; }
+        body { font-family: 'Inter', sans-serif; background: #010409; cursor: none; overflow-x: hidden; color: white; }
+        .font-romantic { font-family: 'Dancing Script', cursive; }
+
+        /* Фоновое сияние */
+        .glow-bg {
+            position: fixed;
+            top: 50%; left: 50%;
+            width: 100vw; height: 100vh;
+            background: radial-gradient(circle at center, rgba(255, 45, 85, 0.15) 0%, transparent 70%);
+            transform: translate(-50%, -50%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Карточка с эффектом стекла */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 100px rgba(0,0,0,0.8);
+            border-radius: 3rem;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Кастомный курсор */
+        #cursor {
+            position: fixed; width: 8px; height: 8px; background: white;
+            border-radius: 50%; pointer-events: none; z-index: 1000;
+            box-shadow: 0 0 15px var(--primary), 0 0 30px var(--primary);
+        }
+
+        /* Анимация перелива текста */
+        .text-gradient {
+            background: linear-gradient(to right, #fff, var(--primary), #a78bfa, #fff);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient-flow 4s linear infinite;
+        }
+        @keyframes gradient-flow { to { background-position: 200% center; } }
+
+        /* Стили для таймера */
+        .timer-unit { font-weight: 800; font-size: 1.5rem; color: var(--primary); }
+        .timer-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; }
+
+        .hidden-message { display: none; }
+    </style>
 </head>
-<body>
-    
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div id="cursor"></div>
+    <div class="glow-bg"></div>
+    <canvas id="stars" class="fixed inset-0 pointer-events-none"></canvas>
+
+    <!-- Музыкальная кнопка (сверху справа) -->
+    <button onclick="toggleMusic()" class="fixed top-8 right-8 z-50 bg-white/5 border border-white/10 p-4 rounded-full hover:bg-white/10 transition-all active:scale-90">
+        <span id="music-icon">🎵</span>
+        <audio id="bg-music" loop>
+            <!-- ВСТАВЬ СЮДА ССЫЛКУ НА MP3 (например из Dropbox или своего хоста) -->
+            <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+        </audio>
+    </button>
+
+    <main class="glass-panel relative z-10 w-full max-w-2xl p-8 md:p-16 text-center" id="card">
+        
+        <div class="mb-6 opacity-0 animate-[fadeIn_1.5s_ease-out_forwards]">
+            <span class="font-romantic text-3xl md:text-4xl text-pink-500">My One and Only</span>
+            <h1 class="text-gradient text-5xl md:text-7xl font-black mt-2 tracking-tighter">I LOVE YOU</h1>
+        </div>
+
+        <!-- Relationship Timer -->
+        <div id="timer" class="flex justify-center gap-4 mb-10 py-4 border-y border-white/5">
+            <div class="text-center"><div class="timer-unit" id="days">00</div><div class="timer-label">Дней</div></div>
+            <div class="text-center"><div class="timer-unit" id="hours">00</div><div class="timer-label">Часов</div></div>
+            <div class="text-center"><div class="timer-unit" id="minutes">00</div><div class="timer-label">Мин</div></div>
+            <div class="text-center"><div class="timer-unit" id="seconds">00</div><div class="timer-label">Сек</div></div>
+        </div>
+
+        <div class="min-h-[80px] mb-8">
+            <p id="typewriter" class="text-xl md:text-2xl font-light text-white/90 italic leading-relaxed"></p>
+        </div>
+
+        <!-- Кнопка Взрыва -->
+        <div class="flex flex-col items-center gap-4">
+            <button onclick="revealLove()" id="surprise-btn" class="px-10 py-4 bg-gradient-to-r from-pink-500 to-violet-600 rounded-full font-bold tracking-widest hover:shadow-[0_0_30px_rgba(236,72,153,0.5)] transition-all transform hover:-translate-y-1 active:scale-95">
+                НАЖМИ СЮДА ❤️
+            </button>
+            <p id="hint" class="text-[10px] text-white/30 uppercase tracking-[0.3em] mt-2">Special surprise inside</p>
+        </div>
+
+        <!-- Секретное письмо (появится после клика) -->
+        <div id="secret-letter" class="hidden-message mt-8 p-6 bg-white/5 rounded-2xl text-left border border-white/10 animate-[fadeIn_1s_ease-out]">
+            <p class="text-sm leading-relaxed text-white/80 italic">
+                "Я просто хотел сказать, что ты — самое удивительное, что случилось в моей жизни. 
+                Этот сайт — лишь малая часть того, как сильно я тебя ценю. Спасибо за каждый момент..."
+            </p>
+        </div>
+
+    </main>
+
+    <script>
+        // --- НАСТРОЙКИ ---
+        const startDate = new Date("2024-01-01T00:00:00"); // УСТАНОВИ ВАШУ ДАТУ ЗДЕСЬ (ГГГГ-ММ-ДД)
+        const phrases = [
+            "Ты — причина моего счастья.",
+           
+            "Ты — центр моей вселенной.",
+            "Твоя улыбка освещает весь этот мир.",
+            "С тобой каждый момент становится особенным.",
+            "Ты — лучшее, что когда-либо со мной случалось.",
+            "Обожаю тебя до луны и обратно.",
+            "i love you)",
+            "С тобой мир становится цветным.",
+            "Ты — мой дом.",
+            "Обожаю, когда ты смеешься.",
+
+
+"«Ты делаешь мою жизнь ярче каждый день.»",
+
+"Рядом с тобой я по-настоящему счастлив",
+
+
+"Ты — мое любимое чувство.",
+
+
+"Каждый день с тобой — подарок.»",
+
+
+"«Мне спокойно, когда ты рядом.",
+
+
+"Ты вдохновляешь меня быть лучше.»",
+
+
+"«Мир становится красивее, когда ты улыбаешься.",
+
+
+"Я могу смотреть на тебя вечно.",
+
+
+"«Ты — моя самая красивая история.»",
+
+
+"«С тобой даже тишина уютная.»",
+
+
+"«Я влюбляюсь в тебя снова и снова.»",
+
+
+"Ты — мое счастье.»",
+
+
+"«Хочу пережить с тобой все лучшие моменты жизни.»",
+
+
+"«Твои глаза — мое любимое место.»",
+
+
+"Люблю тебя больше с каждым днем.»",
+
+
+"«Ты — причина моей улыбки.»",
+
+
+"С тобой сердце бьется иначе.»",
+
+
+"«Я нашел в тебе свой дом.»",
+
+
+"«Ты делаешь обычные дни волшебными.»",
+
+
+"«Forever yours ❤️»",
+
+
+"«You are my favorite person.»",
+
+
+"«I fall for you more every day.»",
+
+
+"«You mean everything to me.»",
+
+
+"«My heart is yours.»"
+        ];
+
+        // 1. Таймер
+        function updateTimer() {
+            const now = new Date();
+            const diff = now - startDate;
+            
+            document.getElementById('days').innerText = Math.floor(diff / (1000 * 60 * 60 * 24));
+            document.getElementById('hours').innerText = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            document.getElementById('minutes').innerText = Math.floor((diff / 1000 / 60) % 60);
+            document.getElementById('seconds').innerText = Math.floor((diff / 1000) % 60);
+        }
+        setInterval(updateTimer, 1000);
+
+        // 2. Печатная машинка
+        let phraseIdx = 0;
+        function typeEffect() {
+            const el = document.getElementById('typewriter');
+            let charIdx = 0;
+            const text = phrases[phraseIdx];
+            
+            const typing = setInterval(() => {
+                el.innerText = text.slice(0, charIdx++);
+                if(charIdx > text.length) {
+                    clearInterval(typing);
+                    setTimeout(eraseEffect, 2000);
+                }
+            }, 70);
+        }
+
+        function eraseEffect() {
+            const el = document.getElementById('typewriter');
+            const erasing = setInterval(() => {
+                el.innerText = el.innerText.slice(0, -1);
+                if(el.innerText.length === 0) {
+                    clearInterval(erasing);
+                    phraseIdx = (phraseIdx + 1) % phrases.length;
+                    typeEffect();
+                }
+            }, 40);
+        }
+
+        // 3. Музыка
+        function toggleMusic() {
+            const audio = document.getElementById('bg-music');
+            const icon = document.getElementById('music-icon');
+            if(audio.paused) {
+                audio.play();
+                icon.innerText = "⏸️";
+            } else {
+                audio.pause();
+                icon.innerText = "🎵";
+            }
+        }
+
+        // 4. Сюрприз
+        function revealLove() {
+            // Конфетти
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#ff2d55', '#ffffff'] });
+            
+            // Показать письмо
+            document.getElementById('secret-letter').style.display = 'block';
+            document.getElementById('surprise-btn').style.display = 'none';
+            document.getElementById('hint').style.display = 'none';
+            
+            // 3D эффект на максимум
+            document.getElementById('card').style.boxShadow = "0 0 150px rgba(255, 45, 85, 0.4)";
+        }
+
+        // 5. Курсор и Параллакс
+        const cursor = document.getElementById('cursor');
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+            
+            const x = (window.innerWidth / 2 - e.clientX) / 40;
+            const y = (window.innerHeight / 2 - e.clientY) / 40;
+            document.getElementById('card').style.transform = `rotateY(${-x}deg) rotateX(${y}deg)`;
+        });
+
+        // Запуск
+        updateTimer();
+        typeEffect();
+
+        // Звездный фон
+        const canvas = document.getElementById('stars');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const stars = Array(200).fill().map(() => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: Math.random()*1.5 }));
+        function draw() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = "white";
+            stars.forEach(s => { ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill(); s.y -= 0.2; if(s.y<0) s.y=canvas.height; });
+            requestAnimationFrame(draw);
+        }
+        draw();
+    </script>
+
+    <style>
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </body>
 </html>
